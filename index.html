@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.png" sizes="16x16 32x32">
+    <title>Ověření MUNI - local</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #1e2640;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background-color: #dc9750;
+            padding: 2rem;
+            border-top: 4px solid #886543;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .spinner {
+            border: 4px solid #334155;
+            border-top: 4px solid #38bdf8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 1.5rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .success {
+            color: #1b703d;
+        }
+        .error {
+            color: #bd2424;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 id="title">Ověřování...</h2>
+        <div id="loader" class="spinner"></div>
+        <p id="message">Čekejte prosím, propojujeme váš Discord s MUNI účtem.</p>
+    </div>
+
+    <script>
+        const BOT_API_URL = "https://85.71.139.85:8080/api/verify";
+
+        async function verify() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const state = params.get('state');
+
+            const titleEl = document.getElementById('title');
+            const messageEl = document.getElementById('message');
+            const loaderEl = document.getElementById('loader');
+
+            if (!code || !state) {
+                loaderEl.style.display = 'none';
+                titleEl.textContent = 'Chyba!';
+                titleEl.className = 'error';
+                messageEl.textContent = 'Chybí potřebné přihlašovací parametry v URL.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BOT_API_URL}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
+
+                loaderEl.style.display = 'none';
+
+                if (response.ok) {
+                    const json = await response.json();
+                    titleEl.textContent = 'Úspěšně ověřeno!';
+                    titleEl.className = json.success ? 'success' : 'error';
+                    titleEl.textContent = json.message;
+                    messageEl.textContent = 'Můžeš toto okno zavřít a vrátit se na Discord. Role ti byla přiřazena.';
+                } else {
+                    throw new Error('Chyba při komunikaci s botem');
+                }
+            } catch (err) {
+                loaderEl.style.display = 'none';
+                titleEl.textContent = 'Něco se pokazilo';
+                titleEl.className = 'error';
+                messageEl.textContent = 'Nepodařilo se ověřit účet. Zkus to na Discordu znovu.';
+            }
+        }
+
+        verify();
+    </script>
+</body>
